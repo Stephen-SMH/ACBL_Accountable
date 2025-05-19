@@ -29,6 +29,7 @@ dependencies:
   image: ^4.1.4
   intl: ^0.18.1
   flutter_launcher_icons: ^0.14.3
+  firebase_vertexai: ^1.6.0
 
 dev_dependencies:
   flutter_test:

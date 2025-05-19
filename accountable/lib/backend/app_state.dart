@@ -1,14 +1,16 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:flutter/material.dart'; // PROVIDER REQUIRES MATERIAL???? WHY????
 import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart'; // for the firebase stuff
-// import 'firebase_options.dart'; // for the firebase stuff
+import 'firebase_options.dart'; // for the firebase stuff
+import 'package:firebase_vertexai/firebase_vertexai.dart'; // gemini api
 
 FirebaseFirestore firebaseDB = FirebaseFirestore.instance;
 
-// stolen from Mafuyu. Shut up.
-// half the codebase is shared between Kanade and Mafuyu anyways.
-// If there's an another version, it's gonna be called Ena or Mizuki or something.
+final llm = FirebaseVertexAI.instance
+    .generativeModel(model: 'gemini-2.5-flash-preview-04-17');
+
 class LocalDB {
   // if you touch this make sure to label the commit with BREAKING CHANGE
   static final LocalDB _instance = LocalDB._internal(); // this shi a singleton
@@ -232,6 +234,7 @@ class Trans {
   final String transName;
   final DateTime transactionDate;
   final double amount;
+  var image = null; // TODO: how are we gonna add the image, then? must be a type of File
   TransactionType transType = TransactionType.other;
 
   Trans({
@@ -258,58 +261,23 @@ class Trans {
     return 'Transaction{transName: $transName, transactionDate: $transactionDate, amount: $amount, transType: $transType}';
   }
 
+
+
   Future<void> generateCategory() async {
-    // Try to find a matching vendor and set the most likely category
-    debugPrint("[generateCategory] Starting for '$transName'");
-    try {
-      final querySnapshot = await firebaseDB.collection("vendors").get();
-      debugPrint(
-          "[generateCategory] Fetched ${querySnapshot.docs.length} vendors.");
-      String? bestVendorName;
-      Map<String, dynamic>? vendorData;
+    final image = this.image.readAsBytes();
+    final imagePart = InlineDataPart('image/jpeg', image);
+    final prompt = TextPart("""Given the image, select the single most fitting category from the following list. Output *only* the chosen category name.
 
-      // Find the vendor whose name is contained in the transaction name
-      for (var doc in querySnapshot.docs) {
-        final docData = doc.data();
-        final vendorName = docData["name"] as String?;
-        if (vendorName != null &&
-            transName.toLowerCase().contains(vendorName.toLowerCase())) {
-          bestVendorName = vendorName;
-          vendorData = docData;
-          debugPrint(
-              "[generateCategory] Found matching vendor '$vendorName' for '$transName'");
-          break; // Found a match, stop searching
-        }
-      }
+List: Food, Personal, Utility, Transportation, Health, Leisure, Other""");
 
-      if (vendorData != null && vendorData.containsKey("votes")) {
-        final votesDynamic = vendorData["votes"] as Map<String, dynamic>? ?? {};
-        final Map<String, int> categories = votesDynamic
-            .map((key, value) => MapEntry(key, (value as num?)?.toInt() ?? 0));
-        debugPrint("[generateCategory] Vendor votes: $categories");
+    var response = await llm.generateContent([Content.multi([prompt, imagePart])]);
 
-        if (categories.isNotEmpty) {
-          final sortedCategories = categories.entries.toList()
-            ..sort((a, b) => b.value.compareTo(a.value)); // Sort descending
-
-          final winningCategory = sortedCategories.first.key.toLowerCase();
-          transType = stringToTransType(winningCategory);
-          debugPrint(
-              "[generateCategory] Generated category for '$transName': ${transTypeToString(transType)} (from $winningCategory)");
-          return;
-        }
-      } else {
-        debugPrint(
-            "[generateCategory] No matching vendor found or vendor has no 'votes' field for '$transName'.");
-      }
-      // If no vendor match or no votes, keep default or current type (often 'other')
-      debugPrint(
-          "[generateCategory] Could not generate category for '$transName', defaulting to ${transTypeToString(transType)}");
-    } catch (e, s) {
-      debugPrint(
-          "[generateCategory] Error generating category for '$transName': $e\nStack trace: $s");
-      // Keep default type on error
+    if (response.isError) {
+      debugPrint("[generateCategory] Error: ${response.error}");
+      return;
     }
+    final category = response.text.trim().toLowerCase();
+    transType = stringToTransType(category);
   }
 
   Future<void> voteCategory() async {

@@ -17,7 +17,10 @@ import 'package:flutter/foundation.dart'
 class DefaultFirebaseOptions {
   static FirebaseOptions get currentPlatform {
     if (kIsWeb) {
-      return web;
+      throw UnsupportedError(
+        'DefaultFirebaseOptions have not been configured for web - '
+        'you can reconfigure this by running the FlutterFire CLI again.',
+      );
     }
     switch (defaultTargetPlatform) {
       case TargetPlatform.android:
@@ -25,9 +28,15 @@ class DefaultFirebaseOptions {
       case TargetPlatform.iOS:
         return ios;
       case TargetPlatform.macOS:
-        return macos;
+        throw UnsupportedError(
+          'DefaultFirebaseOptions have not been configured for macos - '
+          'you can reconfigure this by running the FlutterFire CLI again.',
+        );
       case TargetPlatform.windows:
-        return windows;
+        throw UnsupportedError(
+          'DefaultFirebaseOptions have not been configured for windows - '
+          'you can reconfigure this by running the FlutterFire CLI again.',
+        );
       case TargetPlatform.linux:
         throw UnsupportedError(
           'DefaultFirebaseOptions have not been configured for linux - '
@@ -40,47 +49,20 @@ class DefaultFirebaseOptions {
     }
   }
 
-  static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyDbIgM7E7LdtepTwxgHbE0D1JvHq9h35tI',
-    appId: '1:852124663142:web:b9a1eae8126814ef781ca7',
-    messagingSenderId: '852124663142',
-    projectId: 'kanade-60135',
-    authDomain: 'kanade-60135.firebaseapp.com',
-    storageBucket: 'kanade-60135.firebasestorage.app',
-  );
-
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyD99FlzME01R6bbEpwQXja90YkhD1Nx5N4',
-    appId: '1:852124663142:android:060d9f180b20c65f781ca7',
-    messagingSenderId: '852124663142',
-    projectId: 'kanade-60135',
-    storageBucket: 'kanade-60135.firebasestorage.app',
+    apiKey: 'AIzaSyD4-41Xomqz_I3mut1tX8XadqAanNeIF7I',
+    appId: '1:547582003168:android:2ce1d5e2e9766f4ea80d85',
+    messagingSenderId: '547582003168',
+    projectId: 'kanade2',
+    storageBucket: 'kanade2.firebasestorage.app',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyCtahuN2DtyM7RXOswDDloRPlWJJBL378I',
-    appId: '1:852124663142:ios:c6b259ac3294f537781ca7',
-    messagingSenderId: '852124663142',
-    projectId: 'kanade-60135',
-    storageBucket: 'kanade-60135.firebasestorage.app',
+    apiKey: 'AIzaSyA0tbcgCZBmx4-V8F5zFksD3VQIAJG-cEQ',
+    appId: '1:547582003168:ios:68133658d1cf3c42a80d85',
+    messagingSenderId: '547582003168',
+    projectId: 'kanade2',
+    storageBucket: 'kanade2.firebasestorage.app',
     iosBundleId: 'com.spiralnuggets.kanade',
-  );
-
-  static const FirebaseOptions macos = FirebaseOptions(
-    apiKey: 'AIzaSyCtahuN2DtyM7RXOswDDloRPlWJJBL378I',
-    appId: '1:852124663142:ios:a8dd4aa91a3a4c2f781ca7',
-    messagingSenderId: '852124663142',
-    projectId: 'kanade-60135',
-    storageBucket: 'kanade-60135.firebasestorage.app',
-    iosBundleId: 'com.spiralnuggets.kanade',
-  );
-
-  static const FirebaseOptions windows = FirebaseOptions(
-    apiKey: 'AIzaSyDbIgM7E7LdtepTwxgHbE0D1JvHq9h35tI',
-    appId: '1:852124663142:web:0a22d22430e74bc5781ca7',
-    messagingSenderId: '852124663142',
-    projectId: 'kanade-60135',
-    authDomain: 'kanade-60135.firebaseapp.com',
-    storageBucket: 'kanade-60135.firebasestorage.app',
   );
 }

@@ -1,40 +1,21 @@
 {
   "project_info": {
-    "project_number": "852124663142",
-    "project_id": "kanade-60135",
-    "storage_bucket": "kanade-60135.firebasestorage.app"
+    "project_number": "547582003168",
+    "project_id": "kanade2",
+    "storage_bucket": "kanade2.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:852124663142:android:552bc2e7b897fb71781ca7",
+        "mobilesdk_app_id": "1:547582003168:android:2ce1d5e2e9766f4ea80d85",
         "android_client_info": {
-          "package_name": "com.example.accountable"
+          "package_name": "com.spiralnuggets.ena"
         }
       },
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyD99FlzME01R6bbEpwQXja90YkhD1Nx5N4"
-        }
-      ],
-      "services": {
-        "appinvite_service": {
-          "other_platform_oauth_client": []
-        }
-      }
-    },
-    {
-      "client_info": {
-        "mobilesdk_app_id": "1:852124663142:android:060d9f180b20c65f781ca7",
-        "android_client_info": {
-          "package_name": "com.spiralnuggets.kanade"
-        }
-      },
-      "oauth_client": [],
-      "api_key": [
-        {
-          "current_key": "AIzaSyD99FlzME01R6bbEpwQXja90YkhD1Nx5N4"
+          "current_key": "AIzaSyD4-41Xomqz_I3mut1tX8XadqAanNeIF7I"
         }
       ],
       "services": {
