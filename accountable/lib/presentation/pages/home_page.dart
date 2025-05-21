@@ -1,10 +1,11 @@
 import 'package:accountable/backend/app_state.dart';
 import 'package:accountable/presentation/pages/transaction_details_screen.dart';
 import 'package:accountable/presentation/pages/addTransaction.dart';
-import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart' show DateUtils;
+import 'package:accountable/presentation/widgets/AddTransactionForm.dart';
+import 'package:flutter/material.dart' hide Card, IconButton, showDialog;
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'package:shadcn_flutter/shadcn_flutter.dart' hide Colors, Scaffold;
 
 class HomePage extends StatefulWidget {
   final String detailsPath;
@@ -17,6 +18,7 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   DateTime selectedDate = DateTime.now();
+
   @override
   void initState() {
     super.initState();
@@ -28,25 +30,25 @@ class _HomePageState extends State<HomePage> {
   IconData _getIconForType(TransactionType type) {
     switch (type) {
       case TransactionType.food:
-        return CupertinoIcons.cart;
+        return Icons.shopping_cart;
       case TransactionType.personal:
-        return CupertinoIcons.person;
+        return Icons.person;
       case TransactionType.utility:
-        return CupertinoIcons.lightbulb;
+        return Icons.lightbulb;
       case TransactionType.transportation:
-        return CupertinoIcons.bus;
+        return Icons.directions_bus;
       case TransactionType.health:
-        return CupertinoIcons.bandage;
+        return Icons.health_and_safety;
       case TransactionType.leisure:
-        return CupertinoIcons.film;
+        return Icons.movie;
       case TransactionType.other:
       default:
-        return CupertinoIcons.square_grid_2x2;
+        return Icons.category;
     }
   }
 
   String getFormattedDate(DateTime date) {
-    const List<String> months = [
+    const months = [
       'Jan',
       'Feb',
       'Mar',
@@ -64,7 +66,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   String getMonthName(int month) {
-    const List<String> months = [
+    const months = [
       'Jan',
       'Feb',
       'Mar',
@@ -99,285 +101,267 @@ class _HomePageState extends State<HomePage> {
     return allDays;
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return CupertinoPageScaffold(
-      child: Stack(
-        children: [
-          Consumer<TransList>(
-            builder: (context, transList, child) {
-              final appState = AppState();
-              appState.transList = transList;
-
-              final allDailyTrans = getAllDaysInMonth(appState, selectedDate);
-              debugPrint("DailyTransList for month: $allDailyTrans");
-
-              // Monthly total
-              final totalExpense = allDailyTrans
-                  .expand((day) => day.transactions)
-                  .fold(0.0, (sum, t) => sum + t.amount)
-                  .toStringAsFixed(2);
-
-              return SafeArea(
-                child: SingleChildScrollView(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      children: [
-                        // Month selection controls
-                        Container(
-                          padding: const EdgeInsets.symmetric(vertical: 8),
-                          decoration: BoxDecoration(
-                            color: CupertinoColors.systemGrey6,
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceAround,
-                            children: [
-                              CupertinoButton(
-                                padding: EdgeInsets.zero,
-                                child: const Icon(CupertinoIcons.left_chevron),
-                                onPressed: () {
-                                  setState(() {
-                                    selectedDate = DateTime(
-                                      selectedDate.year,
-                                      selectedDate.month - 1,
-                                    );
-                                  });
-                                },
-                              ),
-                              GestureDetector(
-                                onTap: () async {
-                                  _showDatePicker(context);
-                                },
-                                child: Text(
-                                  '${getMonthName(selectedDate.month)} ${selectedDate.year}',
-                                  style: const TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold),
-                                ),
-                              ),
-                              CupertinoButton(
-                                padding: EdgeInsets.zero,
-                                child: const Icon(CupertinoIcons.right_chevron),
-                                onPressed: () {
-                                  setState(() {
-                                    selectedDate = DateTime(
-                                      selectedDate.year,
-                                      selectedDate.month + 1,
-                                    );
-                                  });
-                                },
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: CupertinoColors.systemIndigo,
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            'Monthly Total: $totalExpense',
-                            style: const TextStyle(
-                                fontSize: 24, color: CupertinoColors.white),
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        if (allDailyTrans.isEmpty)
-                          const Center(
-                              child: Text("No transactions for this month.",
-                                  style: TextStyle(
-                                      color: CupertinoColors.systemGrey)))
-                        else
-                          ...allDailyTrans.map((dailyList) {
-                            final dayTotal = dailyList.transactions
-                                .fold(0.0, (sum, t) => sum + t.amount)
-                                .toStringAsFixed(2);
-
-                            final expenseWidgets =
-                                dailyList.transactions.map((trans) {
-                              return _buildExpenseItem(
-                                icon: _getIconForType(trans.transType),
-                                title: transTypeToString(trans.transType),
-                                subtitle: trans.transName,
-                                amount: trans.amount.toStringAsFixed(2),
-                                context: context,
-                                transaction: trans,
-                              );
-                            }).toList();
-
-                            return Padding(
-                              padding: const EdgeInsets.only(bottom: 16),
-                              child: _buildDayExpense(
-                                day: getFormattedDate(dailyList.getDate()),
-                                totalExpense: dayTotal,
-                                expenses: expenseWidgets,
-                              ),
-                            );
-                          }).toList(),
-                      ],
-                    ),
-                  ),
-                ),
-              );
-            },
-          ),
-          // Floating Action Button
-          Positioned(
-            bottom: 20,
-            right: 20,
-            child: Container(
-              width: 60,
-              height: 60,
-              decoration: BoxDecoration(
-                color: CupertinoColors.systemIndigo,
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: CupertinoColors.systemGrey.withOpacity(0.3),
-                    spreadRadius: 2,
-                    blurRadius: 5,
-                    offset: const Offset(0, 3),
-                  ),
-                ],
-              ),
-              child: CupertinoButton(
-                padding: EdgeInsets.zero,
-                onPressed: () {
-                  Navigator.of(context, rootNavigator: true).push(
-                    CupertinoPageRoute(
-                      builder: (context) => const AddTransaction(),
-                    ),
-                  );
-                },
-                child: const Icon(
-                  CupertinoIcons.add,
-                  color: CupertinoColors.white,
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
+  void _showDatePicker(BuildContext context) async {
+    final pickedDate = await showDatePicker(
+      context: context,
+      initialDate: selectedDate,
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2100),
     );
+    if (pickedDate != null) {
+      setState(() {
+        debugPrint("Selected date: $pickedDate");
+        selectedDate = pickedDate;
+      });
+    }
   }
 
-  void _showDatePicker(BuildContext context) {
-    showCupertinoModalPopup(
-      context: context,
-      builder: (BuildContext context) {
-        return SizedBox(
-          height: 300,
-          child: CupertinoDatePicker(
-            mode: CupertinoDatePickerMode.date,
-            initialDateTime: selectedDate,
-            onDateTimeChanged: (DateTime newDate) {
-              setState(() {
-                selectedDate = newDate;
-              });
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Consumer<TransList>(
+        builder: (context, transList, child) {
+          final appState = AppState();
+          appState.transList = transList;
+
+          final allDailyTrans = getAllDaysInMonth(appState, selectedDate);
+          final totalExpense = allDailyTrans
+              .expand((day) => day.transactions)
+              .fold(0.0, (sum, t) => sum + t.amount)
+              .toStringAsFixed(2);
+
+          return SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: [
+                  // Month Selector
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            selectedDate = DateTime(
+                              selectedDate.year,
+                              selectedDate.month - 1,
+                            );
+                          });
+                        },
+                        child: const Icon(RadixIcons.arrowLeft),
+                      ),
+                      PrimaryButton(
+                        leading: const StatedWidget.map(
+                          states: {
+                            'disabled': Icon(Icons.close),
+                            {WidgetState.hovered, WidgetState.focused}:
+                                Icon(Icons.date_range_sharp),
+                            WidgetState.pressed: Icon(Icons.date_range_rounded),
+                           
+                          },
+                          child: Icon(Icons.date_range_rounded),
+                        ),
+                        onPressed: () {
+                          _showDatePicker(context);
+                        },
+                        child: StatedWidget(
+                          focused: const Text('Choose your date'),
+                          hovered: const Text('Choose your date'),
+                          pressed: const Text('Choose your date'),
+                          child: Text(
+                            '${getMonthName(selectedDate.month)} ${selectedDate.year}',
+                            style: const TextStyle(
+                                fontSize: 18, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ),
+                      GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            selectedDate = DateTime(
+                              selectedDate.year,
+                              selectedDate.month + 1,
+                            );
+                          });
+                        },
+                        child: const Icon(RadixIcons.arrowRight),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  // Monthly Total
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.indigo,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Center(
+                      child: Text(
+                        'Monthly Total: $totalExpense',
+                        style: const TextStyle(
+                          fontSize: 24,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  if (allDailyTrans.isEmpty)
+                    const Center(
+                      child: Text("No transactions for this month.",
+                          style: TextStyle(color: Colors.grey)),
+                    )
+                  else
+                    ...allDailyTrans.map((dailyList) {
+                      final dayTotal = dailyList.transactions
+                          .fold(0.0, (sum, t) => sum + t.amount)
+                          .toStringAsFixed(2);
+
+                      final expenseWidgets =
+                          dailyList.transactions.map((trans) {
+                        return _buildExpenseItem(
+                          icon: _getIconForType(trans.transType),
+                          title: transTypeToString(trans.transType),
+                          subtitle: trans.transName,
+                          amount: trans.amount.toStringAsFixed(2),
+                          context: context,
+                          transaction: trans,
+                        );
+                      }).toList();
+
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 16),
+                        child: _buildDayExpense(
+                          day: getFormattedDate(dailyList.getDate()),
+                          totalExpense: dayTotal,
+                          expenses: expenseWidgets,
+                        ),
+                      );
+                    }).toList(),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        icon: const Icon(Icons.add),
+        label: const Text("Add Transaction"),
+        backgroundColor: Colors.green,
+        onPressed: () {
+          showDialog(
+            barrierColor: Colors.grey,
+            context: context,
+            builder: (context) {
+              return const Card(child: AddTransactionForm());
             },
-          ),
-        );
-      },
+          );
+          // Navigator.of(context).push(
+          //   MaterialPageRoute(
+          //     builder: (context) => const AddTransaction(),
+          //   ),
+          // );
+        },
+      ),
     );
   }
 
   Widget _buildDayExpense({
-    required String day,
-    required String totalExpense,
-    required List<Widget> expenses,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: CupertinoColors.systemIndigo.darkHighContrastColor,
-        borderRadius: BorderRadius.circular(8),
-      ),
+  required String day,
+  required String totalExpense,
+  required List<Widget> expenses,
+}) {
+  return Card(
+    filled: true,
+    fillColor: Colors.lightBlueAccent,
+    borderColor: Colors.orange[200],
+    
+    
+    child: Padding(
+      padding: const EdgeInsets.all(8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Header: Date and daily total
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
                 day,
-                style:
-                    const TextStyle(fontSize: 16, color: CupertinoColors.white),
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
               Row(
                 children: [
-                  const Icon(CupertinoIcons.arrow_up,
-                      size: 16, color: CupertinoColors.white),
+                  const Icon(Icons.arrow_upward, size: 16, color: Colors.red),
+                  const SizedBox(width: 4),
                   Text(
-                    'Expense $totalExpense',
-                    style: const TextStyle(
-                        fontSize: 14, color: CupertinoColors.white),
+                    'Total: $totalExpense',
+                    style: const TextStyle(fontSize: 14, color: Colors.red),
                   ),
                 ],
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
+          // List of transactions for the day
           ...expenses,
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildExpenseItem({
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required String amount,
-    required BuildContext context,
-    Trans? transaction,
-  }) {
-    return GestureDetector(
-      onTap: () {
-        if (transaction != null) {
-          Navigator.of(context).push(
-            CupertinoPageRoute(
-              builder: (context) => TransactionDetailScreen(
-                transaction: transaction,
-              ),
+  required IconData icon,
+  required String title,
+  required String subtitle,
+  required String amount,
+  required BuildContext context,
+  Trans? transaction,
+}) {
+  return InkWell(
+    onTap: () {
+      if (transaction != null) {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => TransactionDetailScreen(
+              transaction: transaction,
             ),
-          );
-        }
-      },
-      child: Container(
-        margin: const EdgeInsets.fromLTRB(40, 0, 0, 20),
-        padding: const EdgeInsets.fromLTRB(10, 10, 10, 25),
-        decoration: BoxDecoration(
-          color: CupertinoColors.systemIndigo.withOpacity(0.7),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Row(
-          children: [
-            Icon(icon, color: CupertinoColors.white),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title,
-                      style: const TextStyle(
-                          fontSize: 16, color: CupertinoColors.white)),
-                  Text(subtitle,
-                      style: const TextStyle(
-                          fontSize: 14, color: CupertinoColors.white)),
-                ],
-              ),
-            ),
-            Text(amount,
-                style: const TextStyle(
-                    fontSize: 16, color: CupertinoColors.white)),
-          ],
-        ),
+          ),
+        );
+      }
+    },
+    child: Container(
+      margin: const EdgeInsets.only(bottom: 4),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.grey[300],
+        borderRadius: BorderRadius.circular(8),
       ),
-    );
-  }
+      child: Row(
+        children: [
+          Icon(icon, color: Colors.indigo),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title,
+                    style: const TextStyle(
+                        fontSize: 16, fontWeight: FontWeight.bold)),
+                Text(subtitle,
+                    style: const TextStyle(fontSize: 14, color: Colors.black87)),
+              ],
+            ),
+          ),
+          Text('$amount THB',
+              style: const TextStyle(fontSize: 16, color: Colors.black)),
+        ],
+      ),
+    ),
+  );
+}
+
+
 }

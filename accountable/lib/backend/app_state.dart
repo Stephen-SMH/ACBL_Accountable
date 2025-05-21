@@ -1,9 +1,8 @@
-import 'package:firebase_core/firebase_core.dart';
+
 import 'package:sqflite/sqflite.dart';
 import 'package:flutter/material.dart'; // PROVIDER REQUIRES MATERIAL???? WHY????
-import 'package:provider/provider.dart';
+
 import 'package:cloud_firestore/cloud_firestore.dart'; // for the firebase stuff
-import 'package:accountable/firebase_options.dart'; // for the firebase stuff
 import 'package:firebase_vertexai/firebase_vertexai.dart'; // gemini api
 
 FirebaseFirestore firebaseDB = FirebaseFirestore.instance;
