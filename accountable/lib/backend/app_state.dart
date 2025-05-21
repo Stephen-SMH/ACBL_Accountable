@@ -3,7 +3,7 @@ import 'package:sqflite/sqflite.dart';
 import 'package:flutter/material.dart'; // PROVIDER REQUIRES MATERIAL???? WHY????
 import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart'; // for the firebase stuff
-import 'firebase_options.dart'; // for the firebase stuff
+import 'package:accountable/firebase_options.dart'; // for the firebase stuff
 import 'package:firebase_vertexai/firebase_vertexai.dart'; // gemini api
 
 FirebaseFirestore firebaseDB = FirebaseFirestore.instance;
@@ -234,7 +234,8 @@ class Trans {
   final String transName;
   final DateTime transactionDate;
   final double amount;
-  var image = null; // TODO: how are we gonna add the image, then? must be a type of File
+  var image =
+      null; // TODO: how are we gonna add the image, then? must be a type of File
   TransactionType transType = TransactionType.other;
 
   Trans({
@@ -261,23 +262,24 @@ class Trans {
     return 'Transaction{transName: $transName, transactionDate: $transactionDate, amount: $amount, transType: $transType}';
   }
 
-
-
   Future<void> generateCategory() async {
     final image = this.image.readAsBytes();
     final imagePart = InlineDataPart('image/jpeg', image);
-    final prompt = TextPart("""Given the image, select the single most fitting category from the following list. Output *only* the chosen category name.
+    final prompt = TextPart(
+        """Given the image, select the single most fitting category from the following list. Output *only* the chosen category name.
 
 List: Food, Personal, Utility, Transportation, Health, Leisure, Other""");
 
-    var response = await llm.generateContent([Content.multi([prompt, imagePart])]);
+    var response = await llm.generateContent([
+      Content.multi([prompt, imagePart])
+    ]);
 
-    if (response.isError) {
-      debugPrint("[generateCategory] Error: ${response.error}");
-      return;
-    }
-    final category = response.text.trim().toLowerCase();
-    transType = stringToTransType(category);
+    // if (response.isError) {
+    //   debugPrint("[generateCategory] Error: ${response.error}");
+    //   return;
+    // }
+    final category = response.text?.trim().toLowerCase();
+    transType = stringToTransType(category!);
   }
 
   Future<void> voteCategory() async {

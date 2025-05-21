@@ -1,9 +1,9 @@
 import 'package:accountable/backend/app_state.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:flutter_web_plugins/url_strategy.dart';
 
 // Firebase Imports
 import 'package:firebase_core/firebase_core.dart';
+import 'package:shadcn_flutter/shadcn_flutter.dart';
 import 'firebase_options.dart';
 
 import 'package:accountable/presentation/pages/home_page.dart';
@@ -12,8 +12,6 @@ import 'package:accountable/presentation/pages/summary_screen.dart';
 import 'package:provider/provider.dart';
 
 void main() async {
-  usePathUrlStrategy(); // clean URLs on web
-
   // Ensure Flutter bindings are initialized before Firebase
   WidgetsFlutterBinding.ensureInitialized();
   // Initialize Firebase
@@ -42,13 +40,13 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return CupertinoApp(
-      debugShowCheckedModeBanner: false,
-      theme: const CupertinoThemeData(
-        primaryColor: CupertinoColors.systemIndigo,
-        brightness: Brightness.light,
-      ),
+    return ShadcnApp(
+      title: 'My Ap',
       home: const MainSegmentedControl(),
+      theme: ThemeData(
+        colorScheme: ColorSchemes.lightGray(),
+        radius: 1.0,
+      ),
     );
   }
 }
@@ -142,7 +140,7 @@ class _MainSegmentedControlState extends State<MainSegmentedControl> {
       case 0:
         return const HomePage(detailsPath: '/transaction_details');
       case 1:
-        return const FileUploadScreen();
+        //return const FileUploadScreen();
       case 2:
         return const BudgetSummaryScreen();
       default:
