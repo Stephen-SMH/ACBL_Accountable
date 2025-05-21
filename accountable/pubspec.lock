@@ -636,10 +636,10 @@ packages:
     dependency: transitive
     description:
       name: skeletonizer
-      sha256: c34a48b3f7ec460bad2d5623ce5dc227042a6dee639c5e3a8e32ab08188426fe
+      sha256: a9ddf63900947f4c0648372b6e9987bc2b028db9db843376db6767224d166c31
       url: "https://pub.dev"
     source: hosted
-    version: "2.0.0-pre"
+    version: "2.0.1"
   sky_engine:
     dependency: transitive
     description: flutter
