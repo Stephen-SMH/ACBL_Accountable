@@ -1,4 +1,5 @@
 // router.dart
+import 'package:accountable/presentation/widgets/AddTransactionForm.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:accountable/presentation/pages/home_page.dart';
@@ -49,8 +50,6 @@ final router = GoRouter(
   ],
 );
 
-
-
 class AppScaffold extends StatelessWidget {
   final StatefulNavigationShell navigationShell;
 
@@ -70,7 +69,13 @@ class AppScaffold extends StatelessWidget {
                 IconButton(
                   icon: const Icon(Icons.add),
                   onPressed: () {
-                    context.go('/home/upload');
+                    showDialog(
+                      barrierColor: Colors.grey,
+                      context: context,
+                      builder: (context) {
+                        return const Card(child: AddTransactionForm());
+                      },
+                    );
                   },
                 ),
               ]
@@ -83,7 +88,8 @@ class AppScaffold extends StatelessWidget {
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
           BottomNavigationBarItem(icon: Icon(Icons.new_label), label: 'New'),
-          BottomNavigationBarItem(icon: Icon(Icons.bar_chart), label: 'Summary'),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.bar_chart), label: 'Summary'),
         ],
       ),
     );
