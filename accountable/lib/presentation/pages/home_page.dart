@@ -293,7 +293,7 @@ class _HomePageState extends State<HomePage> {
               ),
               Row(
                 children: [
-                  const Icon(Icons.arrow_upward, size: 16, color: Colors.red),
+                  
                   const SizedBox(width: 4),
                   Text(
                     'Total: $totalExpense',
