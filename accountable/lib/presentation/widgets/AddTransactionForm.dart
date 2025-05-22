@@ -6,7 +6,10 @@ import 'package:provider/provider.dart';
 import 'package:shadcn_flutter/shadcn_flutter.dart';
 
 class AddTransactionForm extends StatefulWidget {
-  const AddTransactionForm({super.key});
+  const AddTransactionForm({super.key, this.initialNotes,
+    this.initialAmount,});
+  final String? initialNotes;
+  final String? initialAmount;
 
   @override
   State<AddTransactionForm> createState() => _AddTransactionFormState();
@@ -106,9 +109,11 @@ class _AddTransactionFormState extends State<AddTransactionForm> {
                     //validator: const NotEmptyValidator(),
                     key: _amountKey,
                     label: const Text('Amount (THB)'),
-                    child: const TextField(
+                    child: TextField(
                       keyboardType: TextInputType.number,
+                      controller: TextEditingController(text: widget.initialAmount ?? ''),
                     ),
+                    
                   ),
                   FormField(
                     key: _dateKey,
@@ -122,10 +127,12 @@ class _AddTransactionFormState extends State<AddTransactionForm> {
                     ),
                   ),
                   FormField(
-                    key: _notesKey,
-                    label: const Text('Notes'),
-                    child: const TextField(),
-                  ),
+  key: _notesKey,
+  label: const Text('Notes'),
+  child: TextField(
+    controller: TextEditingController(text: widget.initialNotes ?? ''),
+  ),
+),
                   FormField(
                     key: _categoryKey,
                     label: const Text('Category'),
