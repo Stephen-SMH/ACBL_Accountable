@@ -233,8 +233,7 @@ class Trans {
   final String transName;
   final DateTime transactionDate;
   final double amount;
-  var image =
-      null; // TODO: how are we gonna add the image, then? must be a type of File
+  final File image; // this is the image of the receipt
   TransactionType transType = TransactionType.other;
 
   Trans({
@@ -242,6 +241,7 @@ class Trans {
     required this.transactionDate,
     required this.amount,
     required this.transType,
+    required this.image,
   });
 
   Trans.withType({
@@ -250,6 +250,7 @@ class Trans {
     required this.transactionDate,
     required this.amount,
     required this.transType,
+    required this.image,
   });
 
   // Add a constructor that calls generateCategory automatically? Or rely on caller.
