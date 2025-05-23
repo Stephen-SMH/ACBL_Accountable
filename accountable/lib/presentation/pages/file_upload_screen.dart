@@ -15,6 +15,7 @@ import 'package:flutter/material.dart'
         Divider,
         IconButton;
 import 'package:accountable/services/ocr_service.dart';
+import 'package:accountable/services/gemini_service.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:shadcn_flutter/shadcn_flutter.dart' hide TextField;
 
@@ -248,7 +249,7 @@ class _FileUploadScreenState extends State<FileUploadScreen> {
   void _showOcrHintDialogForAmount(File notesImageFile) {
     showDialog(
       context: context,
-      builder: (context) {
+      builder: (dialogContext) {
         return AlertDialog(
           title: const Text("Hint for OCR"),
           content: const Text(
@@ -256,27 +257,41 @@ class _FileUploadScreenState extends State<FileUploadScreen> {
           actions: [
             TextButton(
               onPressed: () async {
-                Navigator.of(context).pop();
+                Navigator.of(dialogContext).pop();
+                
+                if (!mounted) return;
+
                 final XFile? amountPhoto = await _picker.pickImage(
                   source: ImageSource.camera,
                   maxWidth: 1920,
                   maxHeight: 1080,
                   imageQuality: 100,
                 );
-                if (amountPhoto != null) {
-                  final amountOcr =
-                      await _ocrService.extractSlipData(amountPhoto.path);
-                  final amount = amountOcr['amount'];
 
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => AddTransactionForm(
-                        initialNotes: _ocrResult?['recipient'] ?? '',
-                        initialAmount: amount ?? '',
+                if (!mounted) return;
+
+                if (amountPhoto != null) {
+                  final bytes = await File(amountPhoto.path).readAsBytes();
+                  
+                  if (!mounted) return;
+
+                  final String? price = await GeminiService.instance.extractPriceFromImage(bytes);
+
+                  if (!mounted) return;
+
+                  if (price != null) {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => AddTransactionForm(
+                          initialNotes: _ocrResult?['recipient'] ?? '',
+                          initialAmount: price,
+                        ),
                       ),
-                    ),
-                  );
+                    );
+                  } else {
+                    _showErrorMessage('Could not detect a valid price in the image. Please try again or enter manually.');
+                  }
                 }
               },
               child: const Text("Take Photo"),
