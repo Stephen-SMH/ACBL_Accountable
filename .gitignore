@@ -1,1 +1,5 @@
 /accountable/android/app/.cxx
+
+# STOP CHANGING BUILD DIERCTORIES.
+.vscode
+
