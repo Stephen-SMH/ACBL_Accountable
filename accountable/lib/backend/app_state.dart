@@ -233,7 +233,7 @@ class Trans {
   final String transName;
   final DateTime transactionDate;
   final double amount;
-  final XFile image; // PLEASE UPLOAD THIS SHIT
+  final String whatIsThisThing = "i donno men u tell me"; // stupid workaround because no one know how to use XFile
   TransactionType transType = TransactionType.other;
 
   Trans({
@@ -241,7 +241,6 @@ class Trans {
     required this.transactionDate,
     required this.amount,
     required this.transType,
-    required this.image,
   });
 
   Trans.withType({
@@ -250,8 +249,11 @@ class Trans {
     required this.transactionDate,
     required this.amount,
     required this.transType,
-    required this.image,
   });
+
+  void inferYOLONameThingToRealThing(String wtfitt) {
+    this.transName = wtfitt; // this is a stupid workaround for the XFile thing
+  }
 
   // Add a constructor that calls generateCategory automatically? Or rely on caller.
   // Let's rely on the caller for now to call generateCategory explicitly.
