@@ -284,7 +284,7 @@ List: Food, Personal, Utility, Transportation, Health, Leisure, Other""");
     transType = stringToTransType(category!);
   }
 
-  Future<void> voteCategory() async {
+  Future<void> voteCategory() async { // unused. LLMs are used instead
     final categoryToVote = transTypeToString(transType).toLowerCase();
     debugPrint(
         "[voteCategory] Starting for '$transName' with category '$categoryToVote'");
