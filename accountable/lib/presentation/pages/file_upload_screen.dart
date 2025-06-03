@@ -5,9 +5,19 @@ import 'package:accountable/presentation/pages/addTransaction.dart';
 import 'package:accountable/presentation/widgets/AddTransactionForm.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart'
-    hide Colors, showDialog, AlertDialog, TextButton, Scaffold, Card;
+    hide
+        Colors,
+        showDialog,
+        AlertDialog,
+        TextButton,
+        Scaffold,
+        Card,
+        Divider,
+        IconButton;
 import 'package:accountable/services/ocr_service.dart';
-import 'package:shadcn_flutter/shadcn_flutter.dart';
+import 'package:accountable/services/gemini_service.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:shadcn_flutter/shadcn_flutter.dart' hide TextField;
 
 class FileUploadScreen extends StatefulWidget {
   const FileUploadScreen({super.key});
@@ -21,7 +31,8 @@ class _FileUploadScreenState extends State<FileUploadScreen> {
   final OcrService _ocrService = OcrService();
   String? _selectedFilePath;
   Map<String, String?>? _ocrResult;
-  bool _isProcessing = false;
+  final ImagePicker _picker = ImagePicker();
+  XFile? _capturedImage;
 
   Future<void> _pickAndProcessFile() async {
     try {
@@ -35,7 +46,6 @@ class _FileUploadScreenState extends State<FileUploadScreen> {
         setState(() {
           _selectedFilePath = filePath;
           _ocrResult = null;
-          _isProcessing = true;
         });
 
         print("Selected file: $filePath");
@@ -45,7 +55,6 @@ class _FileUploadScreenState extends State<FileUploadScreen> {
 
         setState(() {
           _ocrResult = ocrData;
-          _isProcessing = false;
         });
 
         if (_ocrResult != null) {
@@ -76,7 +85,6 @@ class _FileUploadScreenState extends State<FileUploadScreen> {
       setState(() {
         _selectedFilePath = null;
         _ocrResult = null;
-        _isProcessing = false;
       });
     }
   }
@@ -97,69 +105,287 @@ class _FileUploadScreenState extends State<FileUploadScreen> {
     );
   }
 
+  Future<void> _takePhoto() async {
+    try {
+      final XFile? photo = await _picker.pickImage(
+        source: ImageSource.camera,
+        maxWidth: 1920,
+        maxHeight: 1080,
+        imageQuality: 100,
+      );
+      if (photo != null) {
+        setState(() {
+          _capturedImage = photo;
+        });
+        _confirmImageDialog(File(photo.path));
+      }
+    } catch (e) {
+      debugPrint("Error taking photo: $e");
+    }
+  }
+
+  void _confirmImageDialog(File imageFile) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text("Confirm Photo"),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Image.file(imageFile, height: 200),
+              const SizedBox(height: 12),
+              const Text("Do you want to use this photo?"),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(), // Dismiss only
+              child: const Text("Retake"),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                _showProcessOptionDialog(imageFile);
+              },
+              child: const Text("Use Photo"),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showProcessOptionDialog(File imageFile) {
+    String? manualAmount;
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: const Text("Choose Method"),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text("How would you like to provide the amount?"),
+                  ElevatedButton(
+                    onPressed: () {
+                      setState(() {
+                        manualAmount = '';
+                      });
+                    },
+                    child: const Text("Manual"),
+                  ),
+                  const SizedBox(height: 8),
+                  ElevatedButton(
+                    onPressed: () async {
+                      Navigator.of(context).pop(); // Close this
+                      _showOcrHintDialogForAmount(imageFile);
+                    },
+                    child: const Text("Auto (OCR Amount)"),
+                  ),
+                  if (manualAmount != null) ...[
+                    const SizedBox(height: 16),
+                    TextField(
+                      keyboardType: TextInputType.number,
+                      decoration:
+                          const InputDecoration(labelText: "Enter Amount"),
+                      onChanged: (value) {
+                        manualAmount = value;
+                      },
+                    ),
+                    const SizedBox(height: 8),
+                    ElevatedButton(
+                      onPressed: () {
+                        if (manualAmount != null && manualAmount!.isNotEmpty) {
+                          Navigator.of(context).pop();
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => AddTransactionForm(
+                                initialNotes: _ocrResult?['recipient'] ?? '',
+                                initialAmount: manualAmount,
+                              ),
+                            ),
+                          );
+                        }
+                      },
+                      child: const Text("Confirm"),
+                    ),
+                  ]
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _showOcrHintDialog() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text("Tip for OCR"),
+          content: const Text(
+              "Make sure the price tag is clearly visible and well-lit in the photo. Try to avoid glare or blurry shots."),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // Close hint
+                _takePhoto(); // Start camera again
+              },
+              child: const Text("Take Picture"),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showOcrHintDialogForAmount(File notesImageFile) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text("Hint for OCR"),
+          content: const Text(
+              "Take a photo of the price tag or screen showing the amount."),
+          actions: [
+            TextButton(
+              onPressed: () async {
+                Navigator.of(dialogContext).pop();
+                
+                if (!mounted) return;
+
+                final XFile? amountPhoto = await _picker.pickImage(
+                  source: ImageSource.camera,
+                  maxWidth: 1920,
+                  maxHeight: 1080,
+                  imageQuality: 100,
+                );
+
+                if (!mounted) return;
+
+                if (amountPhoto != null) {
+                  final bytes = await File(amountPhoto.path).readAsBytes();
+                  
+                  if (!mounted) return;
+
+                  final String? price = await GeminiService.instance.extractPriceFromImage(bytes);
+
+                  if (!mounted) return;
+
+                  if (price != null) {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => AddTransactionForm(
+                          initialNotes: _ocrResult?['recipient'] ?? '',
+                          initialAmount: price,
+                        ),
+                      ),
+                    );
+                  } else {
+                    _showErrorMessage('Could not detect a valid price in the image. Please try again or enter manually.');
+                  }
+                }
+              },
+              child: const Text("Take Photo"),
+            )
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       child: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              SwitchListTile(
-                title: const Text('Automatic Upload'),
-                value: isAutomaticUpload,
-                onChanged: (value) {
-                  setState(() {
-                    isAutomaticUpload = value;
-                  });
-                },
-              ),
-              const SizedBox(height: 50),
-              const Icon(
-                Icons.cloud_upload,
-                color: Colors.indigo,
-                size: 80,
-              ),
-              const SizedBox(height: 30),
-              PrimaryButton(
-                onPressed: () {
-                  _pickAndProcessFile();
-                },
-                child: const Text('Select File'),
-              ),
-              if (_selectedFilePath != null) ...[
-                const SizedBox(height: 20),
-                Text(
-                  'Selected: ${_selectedFilePath!.split(Platform.pathSeparator).last}',
-                  style: const TextStyle(color: Colors.gray),
+          child: Card(
+            padding: const EdgeInsets.all(16),
+            filled: true,
+            borderWidth: 1,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(10),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      const Text(
+                        'Select a file',
+                        style: TextStyle(
+                            fontSize: 24, fontWeight: FontWeight.bold),
+                      ),
+                      IconButton(
+                        variance: ButtonVariance.primary,
+                        icon: const Icon(Icons.photo_size_select_actual),
+                        onPressed: () {
+                          _pickAndProcessFile();
+                        },
+                      ),
+                    ],
+                  ),
                 ),
+                Divider(
+                  color: Colors.blue.withOpacity(0.5),
+                  height: 40,
+                  thickness: 2.2,
+                ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    PrimaryButton(
+                      child: const Text('Take a photo'),
+                      onPressed: () => _takePhoto(),
+                    ),
+                    const SizedBox(width: 20),
+                    IconButton(
+                        icon: const Icon(Icons.photo_camera),
+                        onPressed: () => _takePhoto(),
+                        variance: ButtonVariance.primary)
+                  ],
+                ),
+                if (_selectedFilePath != null) ...[
+                  const SizedBox(height: 20),
+                  Text(
+                    'Selected: ${_selectedFilePath!.split(Platform.pathSeparator).last}',
+                    style: const TextStyle(color: Colors.gray),
+                  ),
+                ],
+                if (_ocrResult != null) ...[
+                  const SizedBox(height: 10),
+                  Text('Recipient: ${_ocrResult!['recipient'] ?? 'N/A'}'),
+                  Text('Amount: ${_ocrResult!['amount'] ?? 'N/A'}'),
+                ],
+                const SizedBox(height: 20),
+                const Spacer(),
+                PrimaryButton(
+                  shape: ButtonShape.rectangle,
+                  leading: const Icon(Icons.add),
+                  onPressed: () {
+                    showDialog(
+                      barrierColor: Colors.blue,
+                      context: context,
+                      builder: (context) {
+                        return const Card(child: AddTransactionForm());
+                      },
+                    );
+                  },
+                  child: const Text('Add a transaction manually'),
+                ),
+                const Divider(),
               ],
-              if (_ocrResult != null) ...[
-                const SizedBox(height: 10),
-                Text('Recipient: ${_ocrResult!['recipient'] ?? 'N/A'}'),
-                Text('Amount: ${_ocrResult!['amount'] ?? 'N/A'}'),
-              ],
-              const Spacer(),
-              PrimaryButton(
-                shape : ButtonShape.rectangle,
-                leading: const Icon(Icons.add),
-                
-
-
-               
-                onPressed: () {
-                  showDialog(
-                    barrierColor: Colors.blue,
-                    context: context,
-                    builder: (context) {
-                      return const Card(child: AddTransactionForm());
-                    },
-                  );
-                },
-                child: const Text('Add a transaction manually'),
-              ),
-            ],
+            ),
           ),
         ),
       ),

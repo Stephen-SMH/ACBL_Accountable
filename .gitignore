@@ -119,3 +119,6 @@ app.*.symbols
 !/dev/ci/**/Gemfile.lock
 
 .vscode/
+
+# IT HAS BEEN SINCE FOREVER WHY NO ONE ADD IT HERE
+.env

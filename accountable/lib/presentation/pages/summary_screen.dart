@@ -1,14 +1,7 @@
-import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart'
-    show
-        PointSelection,
-        ListTile,
-        SimpleDialog,
-        Chart,
-        Container,
-        Divider; // Import only Material components needed
+import 'package:flutter/cupertino.dart'; // Import only Material components needed
 import 'package:graphic/graphic.dart';
 import 'package:provider/provider.dart';
+import 'package:shadcn_flutter/shadcn_flutter.dart' hide Label;
 import '../../backend/app_state.dart';
 import 'package:intl/intl.dart'; // Import for DateFormat
 
@@ -55,13 +48,10 @@ class BudgetSummaryScreen extends StatelessWidget {
           .where((trans) => trans.transType == categoryType)
           .toList();
 
-      return Container(
-        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-        decoration: const BoxDecoration(
-          border: Border(
-            bottom: BorderSide(color: CupertinoColors.systemGrey5, width: 0.5),
-          ),
-        ),
+      debugPrint("Category: $categoryType, Transactions: $categoryTransactions");
+      debugPrint("Chart Data: $chartData");
+
+      return Card(
         child: GestureDetector(
           onTap: () {
             _showCategoryTransactions(
@@ -81,7 +71,7 @@ class BudgetSummaryScreen extends StatelessWidget {
       );
     }).toList();
 
-    return CupertinoPageScaffold(
+    return Scaffold(
       child: SafeArea(
         child: Column(
           children: [
@@ -98,7 +88,7 @@ class BudgetSummaryScreen extends StatelessWidget {
             ),
             Expanded(
               child: Container(
-                color: CupertinoColors.systemBackground,
+                color: Colors.white,
                 padding: const EdgeInsets.all(16),
                 child: Column(
                   children: [
@@ -173,10 +163,10 @@ class BudgetSummaryScreen extends StatelessWidget {
 
   void _showCategoryTransactions(BuildContext context,
       TransactionType categoryType, List<Trans> transactions) {
-    showCupertinoDialog(
+    showDialog(
       context: context,
       builder: (BuildContext context) {
-        return CupertinoAlertDialog(
+        return AlertDialog(
           title: Text('${transTypeToString(categoryType)} Transactions'),
           content: transactions.isEmpty
               ? const Text('No transactions found.')
@@ -189,19 +179,32 @@ class BudgetSummaryScreen extends StatelessWidget {
                           padding: const EdgeInsets.symmetric(vertical: 8.0),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
+                          
+                            
                             children: [
-                              Text(
+
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
                                 trans.transName,
                                 style: const TextStyle(
+                                    fontSize: 16,
                                     fontWeight: FontWeight.bold),
                               ),
                               Text(
                                 DateFormat('yyyy-MM-dd')
                                     .format(trans.transactionDate),
                                 style: const TextStyle(
-                                    fontSize: 12,
-                                    color: CupertinoColors.systemGrey),
+                                    
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.w400,
+                                    color: Colors.blue),
                               ),
+                                ],
+                              ),
+                              
                               Text(
                                 '${trans.amount.toStringAsFixed(2)}',
                                 style: const TextStyle(
@@ -215,13 +218,8 @@ class BudgetSummaryScreen extends StatelessWidget {
                     ),
                   ),
                 ),
-          actions: <CupertinoDialogAction>[
-            CupertinoDialogAction(
-              isDefaultAction: true,
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Close'),
-            ),
-          ],
+          
+          
         );
       },
     );
