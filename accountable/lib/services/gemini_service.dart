@@ -23,14 +23,14 @@ class GeminiService {
     final apiKey = _apiKey;
     if (apiKey == null) {
       print("API Key is not set. Cannot call Gemini API.");
-      return isSlip ? {'recipient': null, 'amount': null} : {'price': null};
+      return isSlip ? {'recipient': null, 'amount': null, 'category': null} : {'price': null};
     }
 
     const String url =
-        'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite-001:generateContent';
+        'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent';
         
     final String prompt = isSlip
-        ? "Extract recipient name and total amount from this banking slip. Return as JSON: {recipient: string, amount: string}"
+        ? "Extract recipient name (store name) and total amount from this banking slip. Then categorize the store into one of these categories: food, personal, utility, transportation, health, leisure, or other. Return as JSON: {recipient: string, amount: string, category: string}"
         : "Extract only the numeric price value from this product image. Return as JSON: {price: string}";
 
     final String base64Image = base64Encode(bytes);
@@ -55,6 +55,9 @@ class GeminiService {
         'topP': 1,
         'maxOutputTokens': 150,
         'stopSequences': [],
+        "thinkingConfig": {
+          "thinkingBudget": 0
+        }
       },
       'safetySettings': [
         {'category': 'HARM_CATEGORY_HARASSMENT', 'threshold': 'BLOCK_MEDIUM_AND_ABOVE'},
@@ -71,8 +74,12 @@ class GeminiService {
         body: jsonEncode(requestBody),
       );
 
+      print("Gemini API Request Body: ${jsonEncode(requestBody)}");
+      
       if (response.statusCode == 200) {
         final responseData = jsonDecode(response.body);
+        print("Gemini API Success Response: ${response.body}");
+        
         if (responseData['candidates'] != null &&
             responseData['candidates'].isNotEmpty &&
             responseData['candidates'][0]['content'] != null &&
@@ -80,6 +87,8 @@ class GeminiService {
             responseData['candidates'][0]['content']['parts'].isNotEmpty &&
             responseData['candidates'][0]['content']['parts'][0]['text'] != null) {
           String extractedText = responseData['candidates'][0]['content']['parts'][0]['text'];
+          print("Extracted Text: $extractedText");
+          
           try {
             if (isSlip) {
               // Clean up the response if it contains markdown code blocks
@@ -90,10 +99,14 @@ class GeminiService {
               }
               
               final json = jsonDecode(extractedText) as Map<String, dynamic>;
-              return {
+              print("Parsed JSON: $json");
+              final result = {
                 'recipient': json['recipient']?.toString(),
                 'amount': json['amount']?.toString(),
+                'category': json['category']?.toString().toLowerCase(),
               };
+              print("Final Result: $result");
+              return result;
             } else {
               // For price extraction, first try to parse JSON if it's in that format
               if (extractedText.trim().startsWith('```')) {
@@ -117,21 +130,21 @@ class GeminiService {
           } catch (e) {
             print("Failed to parse Gemini response: $e");
             print("Raw response text: $extractedText");
-            return isSlip ? {'recipient': null, 'amount': null} : {'price': null};
+            return isSlip ? {'recipient': null, 'amount': null, 'category': null} : {'price': null};
           }
         } else {
           print("Gemini API response does not contain expected text data.");
           print("Response body: ${response.body}");
-          return isSlip ? {'recipient': null, 'amount': null} : {'price': null};
+          return isSlip ? {'recipient': null, 'amount': null, 'category': null} : {'price': null};
         }
       } else {
         print("Error calling Gemini API: ${response.statusCode}");
         print("Response body: ${response.body}");
-        return isSlip ? {'recipient': null, 'amount': null} : {'price': null};
+        return isSlip ? {'recipient': null, 'amount': null, 'category': null} : {'price': null};
       }
     } catch (e) {
       print("Exception during Gemini API call: $e");
-      return isSlip ? {'recipient': null, 'amount': null} : {'price': null};
+      return isSlip ? {'recipient': null, 'amount': null, 'category': null} : {'price': null};
     }
   }
 

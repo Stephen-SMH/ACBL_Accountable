@@ -3,6 +3,7 @@ import 'package:flutter/material.dart'; // PROVIDER REQUIRES MATERIAL???? WHY???
 
 import 'package:cloud_firestore/cloud_firestore.dart'; // for the firebase stuff
 import 'package:firebase_vertexai/firebase_vertexai.dart'; // gemini api
+import 'package:accountable/services/gemini_service.dart'; // for GeminiService
 
 FirebaseFirestore firebaseDB = FirebaseFirestore.instance;
 
@@ -134,8 +135,11 @@ class TransList extends ChangeNotifier {
   }
 
   void addTransaction(Trans transaction) {
+    debugPrint("[TransList] Adding transaction: ${transaction.transName} with category: ${transTypeToString(transaction.transType)}");
     transactions.add(transaction);
+    debugPrint("[TransList] Transaction added. List now has ${transactions.length} transactions.");
     notifyListeners();
+    debugPrint("[TransList] Listeners notified.");
   }
 
   void removeTransaction(Trans transaction) {

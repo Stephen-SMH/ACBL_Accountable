@@ -68,6 +68,7 @@ class _FileUploadScreenState extends State<FileUploadScreen> {
                 builder: (context) => AddTransaction(
                   initialAmount: _ocrResult!['amount'],
                   initialNotes: _ocrResult!['recipient'],
+                  initialCategory: _ocrResult!['category'],
                 ),
               ),
             );
