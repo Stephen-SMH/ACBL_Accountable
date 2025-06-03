@@ -233,7 +233,8 @@ class Trans {
   final String transName;
   final DateTime transactionDate;
   final double amount;
-  final String whatIsThisThing = "i donno men u tell me"; // stupid workaround because no one know how to use XFile
+  var image =
+      null; // TODO: how are we gonna add the image, then? must be a type of File
   TransactionType transType = TransactionType.other;
 
   Trans({
@@ -250,10 +251,6 @@ class Trans {
     required this.amount,
     required this.transType,
   });
-
-  void inferYOLONameThingToRealThing(String wtfitt) {
-    this.transName = wtfitt; // this is a stupid workaround for the XFile thing
-  }
 
   // Add a constructor that calls generateCategory automatically? Or rely on caller.
   // Let's rely on the caller for now to call generateCategory explicitly.
@@ -284,7 +281,7 @@ List: Food, Personal, Utility, Transportation, Health, Leisure, Other""");
     transType = stringToTransType(category!);
   }
 
-  Future<void> voteCategory() async { // unused. LLMs are used instead
+  Future<void> voteCategory() async {
     final categoryToVote = transTypeToString(transType).toLowerCase();
     debugPrint(
         "[voteCategory] Starting for '$transName' with category '$categoryToVote'");
