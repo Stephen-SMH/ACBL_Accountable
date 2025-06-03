@@ -14,7 +14,6 @@ import 'package:flutter/material.dart'
         Card,
         Divider,
         IconButton;
-import 'package:accountable/services/ocr_service.dart';
 import 'package:accountable/services/gemini_service.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:shadcn_flutter/shadcn_flutter.dart' hide TextField;
@@ -28,7 +27,6 @@ class FileUploadScreen extends StatefulWidget {
 
 class _FileUploadScreenState extends State<FileUploadScreen> {
   bool isAutomaticUpload = false;
-  final OcrService _ocrService = OcrService();
   String? _selectedFilePath;
   Map<String, String?>? _ocrResult;
   final ImagePicker _picker = ImagePicker();
@@ -49,17 +47,20 @@ class _FileUploadScreenState extends State<FileUploadScreen> {
         });
 
         print("Selected file: $filePath");
-
-        Map<String, String?> ocrData =
-            await _ocrService.extractSlipData(filePath);
+        
+        // Read file as bytes
+        final bytes = await File(filePath).readAsBytes();
+        
+        // Process with Gemini API
+        Map<String, String?> ocrData = 
+            await GeminiService.instance.extractData(bytes, isSlip: true);
 
         setState(() {
           _ocrResult = ocrData;
         });
 
-        if (_ocrResult != null) {
-          print(
-              "OCR Result: Recipient: ${_ocrResult!['recipient']}, Amount: ${_ocrResult!['amount']}");
+        if (_ocrResult != null && _ocrResult!['recipient'] != null && _ocrResult!['amount'] != null) {
+          print("Gemini Result: Recipient: ${_ocrResult!['recipient']}, Amount: ${_ocrResult!['amount']}");
           if (mounted) {
             Navigator.push(
               context,
@@ -72,13 +73,13 @@ class _FileUploadScreenState extends State<FileUploadScreen> {
             );
           }
         } else {
-          _showErrorMessage('Failed to extract data from slip.');
+          _showErrorMessage('Failed to extract data from slip. Please try again or add manually.');
         }
       } else {
         print("File picking cancelled.");
       }
     } catch (e) {
-      print("Error during file picking or OCR: $e");
+      print("Error during file picking or Gemini processing: $e");
       if (mounted) {
         _showErrorMessage('Error: $e');
       }
@@ -271,11 +272,12 @@ class _FileUploadScreenState extends State<FileUploadScreen> {
                 if (!mounted) return;
 
                 if (amountPhoto != null) {
-                  final bytes = await File(amountPhoto.path).readAsBytes();
+                  final bytes = await File(amountPhoto!.path).readAsBytes();
                   
                   if (!mounted) return;
 
-                  final String? price = await GeminiService.instance.extractPriceFromImage(bytes);
+                  final result = await GeminiService.instance.extractData(bytes, isSlip: false);
+                  final String? price = result['price'];
 
                   if (!mounted) return;
 
@@ -315,45 +317,38 @@ class _FileUploadScreenState extends State<FileUploadScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                Padding(
-                  padding: const EdgeInsets.all(10),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      const Text(
-                        'Select a file',
-                        style: TextStyle(
-                            fontSize: 24, fontWeight: FontWeight.bold),
-                      ),
-                      IconButton(
-                        variance: ButtonVariance.primary,
-                        icon: const Icon(Icons.photo_size_select_actual),
-                        onPressed: () {
-                          _pickAndProcessFile();
-                        },
-                      ),
-                    ],
-                  ),
+                // UPLOAD SLIP SECTION
+                const Text(
+                  "UPLOAD SLIP",
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                 ),
-                Divider(
-                  color: Colors.blue.withOpacity(0.5),
+                const SizedBox(height: 8),
+                const Text("Upload bank slip for automatic processing"),
+                const SizedBox(height: 16),
+                PrimaryButton(
+                  child: const Text('Select File'),
+                  onPressed: () {
+                    _pickAndProcessFile();
+                  },
+                ),
+                const SizedBox(height: 20),
+                const Divider(
+                  color: Colors.blue,
                   height: 40,
                   thickness: 2.2,
                 ),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    PrimaryButton(
-                      child: const Text('Take a photo'),
-                      onPressed: () => _takePhoto(),
-                    ),
-                    const SizedBox(width: 20),
-                    IconButton(
-                        icon: const Icon(Icons.photo_camera),
-                        onPressed: () => _takePhoto(),
-                        variance: ButtonVariance.primary)
-                  ],
+
+                // CAPTURE OBJECT SECTION
+                const Text(
+                  "CAPTURE OBJECT",
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                const Text("Capture object photo for price extraction"),
+                const SizedBox(height: 16),
+                PrimaryButton(
+                  child: const Text('Take Photo'),
+                  onPressed: () => _takePhoto(),
                 ),
                 if (_selectedFilePath != null) ...[
                   const SizedBox(height: 20),

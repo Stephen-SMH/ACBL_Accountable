@@ -1,4 +1,3 @@
-
 import 'package:sqflite/sqflite.dart';
 import 'package:flutter/material.dart'; // PROVIDER REQUIRES MATERIAL???? WHY????
 
@@ -262,23 +261,33 @@ class Trans {
   }
 
   Future<void> generateCategory() async {
-    final image = this.image.readAsBytes();
-    final imagePart = InlineDataPart('image/jpeg', image);
-    final prompt = TextPart(
-        """Given the image, select the single most fitting category from the following list. Output *only* the chosen category name.
+    if (this.image == null) {
+      debugPrint("[generateCategory] No image provided, skipping category generation");
+      return;
+    }
+    
+    try {
+      final image = await this.image.readAsBytes();
+      final imagePart = InlineDataPart('image/jpeg', image);
+      final prompt = TextPart(
+          """Given the image, select the single most fitting category from the following list. Output *only* the chosen category name.
 
 List: Food, Personal, Utility, Transportation, Health, Leisure, Other""");
 
-    var response = await llm.generateContent([
-      Content.multi([prompt, imagePart])
-    ]);
+      var response = await llm.generateContent([
+        Content.multi([prompt, imagePart])
+      ]);
 
-    // if (response.isError) {
-    //   debugPrint("[generateCategory] Error: ${response.error}");
-    //   return;
-    // }
-    final category = response.text?.trim().toLowerCase();
-    transType = stringToTransType(category!);
+      // if (response.isError) {
+      //   debugPrint("[generateCategory] Error: ${response.error}");
+      //   return;
+      // }
+      final category = response.text?.trim().toLowerCase();
+      transType = stringToTransType(category!);
+    } catch (e) {
+      debugPrint("[generateCategory] Error processing image: $e");
+      // Keep the current transaction type if there's an error
+    }
   }
 
   Future<void> voteCategory() async {

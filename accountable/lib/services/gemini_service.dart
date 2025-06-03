@@ -5,11 +5,10 @@ import 'package:http/http.dart' as http;
 
 class GeminiService {
   static final GeminiService instance = GeminiService._internal();
-  String? _cachedApiKey; // Renamed to avoid confusion
+  String? _cachedApiKey;
 
-  GeminiService._internal(); // Constructor does nothing now
+  GeminiService._internal();
 
-  // Getter for the API key
   String? get _apiKey {
     if (_cachedApiKey == null) {
       _cachedApiKey = dotenv.env['GEMINI_API_KEY'];
@@ -20,22 +19,21 @@ class GeminiService {
     return _cachedApiKey;
   }
 
-  Future<String?> extractPriceFromImage(Uint8List imageBytes) async {
-    final apiKey = _apiKey; // Access the key through the getter
+  Future<Map<String, String?>> extractData(Uint8List bytes, {bool isSlip = true}) async {
+    final apiKey = _apiKey;
     if (apiKey == null) {
       print("API Key is not set. Cannot call Gemini API.");
-      return null;
+      return isSlip ? {'recipient': null, 'amount': null} : {'price': null};
     }
 
     const String url =
-        'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite-001:generateContent'; // Updated to gemini-2.0-flash-lite-001
-    // Even though the user asked for gemini 2.5 flash, the gemini-pro-vision is a stable model that supports images.
-    // The prompt is specifically crafted to get only the price.
+        'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite-001:generateContent';
+        
+    final String prompt = isSlip
+        ? "Extract recipient name and total amount from this banking slip. Return as JSON: {recipient: string, amount: string}"
+        : "Extract only the numeric price value from this product image. Return as JSON: {price: string}";
 
-    final String prompt =
-        "Extract the numerical price from this image. Return only the price as a number, with a decimal point if applicable. Do not include currency symbols or any other text.";
-
-    final String base64Image = base64Encode(imageBytes);
+    final String base64Image = base64Encode(bytes);
 
     final Map<String, dynamic> requestBody = {
       'contents': [
@@ -44,7 +42,7 @@ class GeminiService {
             {'text': prompt},
             {
               'inline_data': {
-                'mime_type': 'image/jpeg', // Assuming JPEG, adjust if necessary
+                'mime_type': 'image/jpeg',
                 'data': base64Image,
               }
             }
@@ -52,13 +50,13 @@ class GeminiService {
         }
       ],
       'generationConfig': {
-        'temperature': 0.1, // Low temperature for more deterministic output
+        'temperature': 0.1,
         'topK': 1,
         'topP': 1,
-        'maxOutputTokens': 150, // Increased from 50
+        'maxOutputTokens': 150,
         'stopSequences': [],
       },
-      'safetySettings': [ // Adjust safety settings as needed
+      'safetySettings': [
         {'category': 'HARM_CATEGORY_HARASSMENT', 'threshold': 'BLOCK_MEDIUM_AND_ABOVE'},
         {'category': 'HARM_CATEGORY_HATE_SPEECH', 'threshold': 'BLOCK_MEDIUM_AND_ABOVE'},
         {'category': 'HARM_CATEGORY_SEXUALLY_EXPLICIT', 'threshold': 'BLOCK_MEDIUM_AND_ABOVE'},
@@ -68,7 +66,7 @@ class GeminiService {
 
     try {
       final response = await http.post(
-        Uri.parse('$url?key=$apiKey'), // Use the local apiKey variable
+        Uri.parse('$url?key=$apiKey'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode(requestBody),
       );
@@ -82,28 +80,63 @@ class GeminiService {
             responseData['candidates'][0]['content']['parts'].isNotEmpty &&
             responseData['candidates'][0]['content']['parts'][0]['text'] != null) {
           String extractedText = responseData['candidates'][0]['content']['parts'][0]['text'];
-          // Attempt to parse the extracted text to a double to ensure it's a valid price.
-          // This also helps to remove any potential leading/trailing non-numeric characters if Gemini doesn't strictly follow the prompt.
           try {
-            double.parse(extractedText.replaceAll(RegExp(r'[^0-9.]'), '')); // Keep only digits and dot
-            return extractedText.replaceAll(RegExp(r'[^0-9.]'), '');
+            if (isSlip) {
+              // Clean up the response if it contains markdown code blocks
+              if (extractedText.trim().startsWith('```')) {
+                extractedText = extractedText
+                    .replaceFirst(RegExp(r'^```json\s*'), '')
+                    .replaceFirst(RegExp(r'\s*```$'), '');
+              }
+              
+              final json = jsonDecode(extractedText) as Map<String, dynamic>;
+              return {
+                'recipient': json['recipient']?.toString(),
+                'amount': json['amount']?.toString(),
+              };
+            } else {
+              // For price extraction, first try to parse JSON if it's in that format
+              if (extractedText.trim().startsWith('```')) {
+                extractedText = extractedText
+                    .replaceFirst(RegExp(r'^```json\s*'), '')
+                    .replaceFirst(RegExp(r'\s*```$'), '');
+                
+                try {
+                  final json = jsonDecode(extractedText) as Map<String, dynamic>;
+                  return {'price': json['price']?.toString()};
+                } catch (e) {
+                  // If JSON parsing fails, fall back to regex extraction
+                  final cleaned = extractedText.replaceAll(RegExp(r'[^0-9.]'), '');
+                  return {'price': cleaned};
+                }
+              } else {
+                final cleaned = extractedText.replaceAll(RegExp(r'[^0-9.]'), '');
+                return {'price': cleaned};
+              }
+            }
           } catch (e) {
-            print("Gemini API returned text that is not a valid price: $extractedText. Error: $e");
-            return null;
+            print("Failed to parse Gemini response: $e");
+            print("Raw response text: $extractedText");
+            return isSlip ? {'recipient': null, 'amount': null} : {'price': null};
           }
         } else {
           print("Gemini API response does not contain expected text data.");
           print("Response body: ${response.body}");
-          return null;
+          return isSlip ? {'recipient': null, 'amount': null} : {'price': null};
         }
       } else {
         print("Error calling Gemini API: ${response.statusCode}");
         print("Response body: ${response.body}");
-        return null;
+        return isSlip ? {'recipient': null, 'amount': null} : {'price': null};
       }
     } catch (e) {
       print("Exception during Gemini API call: $e");
-      return null;
+      return isSlip ? {'recipient': null, 'amount': null} : {'price': null};
     }
   }
-} 
+
+  Future<String?> extractPriceFromImage(Uint8List imageBytes) async {
+    final result = await extractData(imageBytes, isSlip: false);
+    return result['price'];
+  }
+}
