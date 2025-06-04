@@ -1,7 +1,6 @@
 import 'package:accountable/backend/app_state.dart';
 import 'package:accountable/presentation/pages/addTransaction.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart' show CircleAvatar;
 import 'package:intl/intl.dart'; // Import for date formatting
 
 class TransactionDetailScreen extends StatelessWidget {
