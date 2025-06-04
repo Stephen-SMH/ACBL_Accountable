@@ -35,7 +35,7 @@ dependencies:
   path: ^1.9.1
   image_picker: ^1.1.2
   video_player: ^2.9.5
-  
+  tflite_flutter: ^0.11.0 # Updated to latest version
 
 dev_dependencies:
   flutter_test:
@@ -71,6 +71,8 @@ flutter:
     - assets/tessdata/
     - assets/tessdata_config.json
     - .env
+    - assets/best_float16.tflite
+    - assets/best.mlpackage/
   #   - images/a_dot_ham.jpeg
 
   # An image asset can refer to one or more resolution-specific "variants", see

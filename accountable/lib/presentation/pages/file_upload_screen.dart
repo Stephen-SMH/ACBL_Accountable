@@ -15,6 +15,7 @@ import 'package:flutter/material.dart'
         Divider,
         IconButton;
 import 'package:accountable/services/gemini_service.dart';
+import 'package:accountable/services/object_detection_service.dart'; // Added import
 import 'package:image_picker/image_picker.dart';
 import 'package:shadcn_flutter/shadcn_flutter.dart' hide TextField;
 
@@ -146,9 +147,9 @@ class _FileUploadScreenState extends State<FileUploadScreen> {
               child: const Text("Retake"),
             ),
             TextButton(
-              onPressed: () {
+              onPressed: () async {
                 Navigator.of(context).pop();
-                _showProcessOptionDialog(imageFile);
+                await _processImageWithObjectDetection(imageFile);
               },
               child: const Text("Use Photo"),
             ),
@@ -158,7 +159,101 @@ class _FileUploadScreenState extends State<FileUploadScreen> {
     );
   }
 
-  void _showProcessOptionDialog(File imageFile) {
+  Future<void> _processImageWithObjectDetection(File imageFile) async {
+    try {
+      final detectionResult = await ObjectDetectionService().detectObjects(imageFile.path);
+
+      if (!mounted) return;
+
+      if (detectionResult != null) {
+        print('Object Detected: ${detectionResult.name}, Accuracy: ${detectionResult.accuracy}');
+        
+        // Get category from Gemini based on detected object name
+        final String? category = await GeminiService.instance.generateCategoryFromText(detectionResult.name);
+
+        if (!mounted) return;
+
+        // Now, present the amount input options (manual or OCR)
+        _showAmountInputOptions(detectionResult.name, category, imageFile);
+
+      } else {
+        // If object detection fails, offer manual entry or original OCR flow
+        _showErrorMessage('Could not detect any object in the image. Please try again.');
+        if (mounted) {
+          showDialog(
+            context: context,
+            builder: (context) {
+              return AlertDialog(
+                title: const Text("Object Detection Failed"),
+                content: const Text("Would you like to add manually or try OCR for amount?"),
+                actions: [
+                  TextButton(
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const AddTransactionForm(),
+                        ),
+                      );
+                    },
+                    child: const Text("Add Manually"),
+                  ),
+                  TextButton(
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                      _showOcrHintDialogForAmount(imageFile); // Original OCR flow for amount
+                    },
+                    child: const Text("Try OCR for Amount"),
+                  ),
+                ],
+              );
+            },
+          );
+        }
+      }
+    } catch (e) {
+      print("Error during object detection: $e");
+      if (mounted) {
+        _showErrorMessage('Error processing image with object detection: $e');
+        if (mounted) {
+          showDialog(
+            context: context,
+            builder: (context) {
+              return AlertDialog(
+                title: const Text("Error during Object Detection"),
+                content: const Text("Would you like to add manually or try OCR for amount?"),
+                actions: [
+                  TextButton(
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const AddTransactionForm(),
+                        ),
+                      );
+                    },
+                    child: const Text("Add Manually"),
+                  ),
+                  TextButton(
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                      _showOcrHintDialogForAmount(imageFile); // Original OCR flow for amount
+                    },
+                    child: const Text("Try OCR for Amount"),
+                  ),
+                ],
+              );
+            },
+          );
+        }
+      }
+    }
+  }
+
+  // Re-introducing _showAmountInputOptions as the direct next step after object detection
+  void _showAmountInputOptions(String detectedNotes, String? detectedCategory, File originalImageFile) {
     String? manualAmount;
 
     showDialog(
@@ -167,7 +262,7 @@ class _FileUploadScreenState extends State<FileUploadScreen> {
         return StatefulBuilder(
           builder: (context, setState) {
             return AlertDialog(
-              title: const Text("Choose Method"),
+              title: const Text("Provide Amount"),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -175,16 +270,16 @@ class _FileUploadScreenState extends State<FileUploadScreen> {
                   ElevatedButton(
                     onPressed: () {
                       setState(() {
-                        manualAmount = '';
+                        manualAmount = ''; // Trigger manual input field
                       });
                     },
-                    child: const Text("Manual"),
+                    child: const Text("Manual Amount"),
                   ),
                   const SizedBox(height: 8),
                   ElevatedButton(
-                    onPressed: () async {
-                      Navigator.of(context).pop(); // Close this
-                      _showOcrHintDialogForAmount(imageFile);
+                    onPressed: () {
+                      Navigator.of(context).pop(); // Close this dialog
+                      _showOcrHintDialogForAmount(originalImageFile, initialNotes: detectedNotes, initialCategory: detectedCategory);
                     },
                     child: const Text("Auto (OCR Amount)"),
                   ),
@@ -207,14 +302,17 @@ class _FileUploadScreenState extends State<FileUploadScreen> {
                             context,
                             MaterialPageRoute(
                               builder: (_) => AddTransactionForm(
-                                initialNotes: _ocrResult?['recipient'] ?? '',
+                                initialNotes: detectedNotes,
                                 initialAmount: manualAmount,
+                                initialCategory: detectedCategory,
                               ),
                             ),
                           );
+                        } else {
+                          _showErrorMessage('Please enter an amount.');
                         }
                       },
-                      child: const Text("Confirm"),
+                      child: const Text("Confirm Manual Amount"),
                     ),
                   ]
                 ],
@@ -248,7 +346,7 @@ class _FileUploadScreenState extends State<FileUploadScreen> {
     );
   }
 
-  void _showOcrHintDialogForAmount(File notesImageFile) {
+  void _showOcrHintDialogForAmount(File imageFile, {String? initialNotes, String? initialCategory}) {
     showDialog(
       context: context,
       builder: (dialogContext) {
@@ -273,7 +371,7 @@ class _FileUploadScreenState extends State<FileUploadScreen> {
                 if (!mounted) return;
 
                 if (amountPhoto != null) {
-                  final bytes = await File(amountPhoto!.path).readAsBytes();
+                  final bytes = await File(amountPhoto.path).readAsBytes();
                   
                   if (!mounted) return;
 
@@ -287,8 +385,9 @@ class _FileUploadScreenState extends State<FileUploadScreen> {
                       context,
                       MaterialPageRoute(
                         builder: (_) => AddTransactionForm(
-                          initialNotes: _ocrResult?['recipient'] ?? '',
+                          initialNotes: initialNotes, // Use optional initialNotes
                           initialAmount: price,
+                          initialCategory: initialCategory, // Use optional initialCategory
                         ),
                       ),
                     );
