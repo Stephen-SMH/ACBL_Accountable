@@ -6,10 +6,15 @@ import 'package:provider/provider.dart';
 import 'package:shadcn_flutter/shadcn_flutter.dart';
 
 class AddTransactionForm extends StatefulWidget {
-  const AddTransactionForm({super.key, this.initialNotes,
-    this.initialAmount,});
+  const AddTransactionForm({
+    super.key,
+    this.initialNotes,
+    this.initialAmount,
+    this.initialCategory, // Added initialCategory
+  });
   final String? initialNotes;
   final String? initialAmount;
+  final String? initialCategory; // Added initialCategory
 
   @override
   State<AddTransactionForm> createState() => _AddTransactionFormState();
@@ -42,6 +47,9 @@ class _AddTransactionFormState extends State<AddTransactionForm> {
   void initState() {
     super.initState();
     selectedDate = DateTime.now();
+    if (widget.initialCategory != null) {
+      selectedCategory = widget.initialCategory!;
+    }
   }
 
   void _pickDate(BuildContext context) async {
@@ -98,94 +106,96 @@ class _AddTransactionFormState extends State<AddTransactionForm> {
               const SnackBar(content: Text('Transaction saved!')),
             );
           },
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  FormField(
-                    //validator: const NotEmptyValidator(),
-                    key: _amountKey,
-                    label: const Text('Amount (THB)'),
-                    child: TextField(
-                      keyboardType: TextInputType.number,
-                      controller: TextEditingController(text: widget.initialAmount ?? ''),
+          child: SingleChildScrollView( // Wrap with SingleChildScrollView
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    FormField(
+                      //validator: const NotEmptyValidator(),
+                      key: _amountKey,
+                      label: const Text('Amount (THB)'),
+                      child: TextField(
+                        keyboardType: TextInputType.number,
+                        controller: TextEditingController(text: widget.initialAmount ?? ''),
+                      ),
+                      
                     ),
-                    
-                  ),
-                  FormField(
-                    key: _dateKey,
-                    label: const Text('Date'),
-                    child: ListTile(
-                      title: Text(selectedDate == null
-                          ? 'Select Date'
-                          : '${selectedDate!.toLocal()}'.split(' ')[0]),
-                      trailing: const Icon(Icons.calendar_today),
-                      onTap: () => _pickDate(context),
+                    FormField(
+                      key: _dateKey,
+                      label: const Text('Date'),
+                      child: ListTile(
+                        title: Text(selectedDate == null
+                            ? 'Select Date'
+                            : '${selectedDate!.toLocal()}'.split(' ')[0]),
+                        trailing: const Icon(Icons.calendar_today),
+                        onTap: () => _pickDate(context),
+                      ),
                     ),
-                  ),
-                  FormField(
-  key: _notesKey,
-  label: const Text('Notes'),
-  child: TextField(
-    controller: TextEditingController(text: widget.initialNotes ?? ''),
-  ),
-),
-                  FormField(
-                    key: _categoryKey,
-                    label: const Text('Category'),
-                    child: DropdownButtonFormField<String>(
-                      value: selectedCategory,
-                      items: categories
-                          .map((cat) =>
-                              DropdownMenuItem(value: cat, child: Text(cat)))
-                          .toList(),
-                      onChanged: (value) {
-                        setState(() {
-                          selectedCategory = value!;
+                    FormField(
+                      key: _notesKey,
+                      label: const Text('Notes'),
+                      child: TextField(
+                        controller: TextEditingController(text: widget.initialNotes ?? ''),
+                      ),
+                    ),
+                    FormField(
+                      key: _categoryKey,
+                      label: const Text('Category'),
+                      child: DropdownButtonFormField<String>(
+                        value: selectedCategory,
+                        items: categories
+                            .map((cat) =>
+                                DropdownMenuItem(value: cat, child: Text(cat)))
+                            .toList(),
+                        onChanged: (value) {
+                          setState(() {
+                            selectedCategory = value!;
 
-                          selectedTransactionType =
-                              transactionTypes.contains(value)
-                                  ? value
-                                  : selectedTransactionType;
-                          debugPrint('Selected Category: $selectedCategory');
-                        });
-                      },
+                            selectedTransactionType =
+                                transactionTypes.contains(value)
+                                    ? value
+                                    : selectedTransactionType;
+                            debugPrint('Selected Category: $selectedCategory');
+                          });
+                        },
+                      ),
                     ),
-                  ),
-                  FormField(
-                    key: _typeKey,
-                    label: const Text('Transaction Type'),
-                    child: DropdownButtonFormField<String>(
-                      value: selectedTransactionType,
-                      items: ['Withdraw', 'Deposit']
-                          .map((t) => DropdownMenuItem(
-                                value: t,
-                                child: Text(t),
-                              ))
-                          .toList(),
-                      onChanged: (value) {
-                        setState(() {
-                          selectedTransactionType = value!;
-                        });
-                      },
+                    FormField(
+                      key: _typeKey,
+                      label: const Text('Transaction Type'),
+                      child: DropdownButtonFormField<String>(
+                        value: selectedTransactionType,
+                        items: ['Withdraw', 'Deposit']
+                            .map((t) => DropdownMenuItem(
+                                  value: t,
+                                  child: Text(t),
+                                ))
+                            .toList(),
+                        onChanged: (value) {
+                          setState(() {
+                            selectedTransactionType = value!;
+                          });
+                        },
+                      ),
                     ),
-                  ),
-                ],
-              ).gap(24),
-              const Gap(24),
-              FormErrorBuilder(
-                builder: (context, errors, child) {
-                  return PrimaryButton(
-                    onPressed:
-                        errors.isEmpty ? () => context.submitForm() : null,
-                    child: const Text('Save Transaction'),
-                  );
-                },
-              )
-            ],
+                  ],
+                ).gap(24),
+                const Gap(24),
+                FormErrorBuilder(
+                  builder: (context, errors, child) {
+                    return PrimaryButton(
+                      onPressed:
+                          errors.isEmpty ? () => context.submitForm() : null,
+                      child: const Text('Save Transaction'),
+                    );
+                  },
+                )
+              ],
+            ),
           ),
         ),
       ),

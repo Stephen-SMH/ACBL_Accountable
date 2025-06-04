@@ -152,4 +152,5 @@ class GeminiService {
     final result = await extractData(imageBytes, isSlip: false);
     return result['price'];
   }
+
 }
