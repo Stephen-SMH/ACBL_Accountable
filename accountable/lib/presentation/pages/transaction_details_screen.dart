@@ -88,7 +88,7 @@ class TransactionDetailScreen extends StatelessWidget {
               _buildInfoTile(CupertinoIcons.pencil, transaction.transName,
                   context), // Use transaction name/notes
               const SizedBox(height: 20),
-              _buildSlipInfo(), // Keep slip info for now, might need adjustment later
+              // _buildSlipInfo(), // Keep slip info for now, might need adjustment later
               const Spacer(),
               Center(
                 child: CupertinoButton(
@@ -176,6 +176,7 @@ class TransactionDetailScreen extends StatelessWidget {
     );
   }
 
+/*
   Widget _buildSlipInfo() {
     return Container(
       padding: const EdgeInsets.all(16.0),
@@ -197,37 +198,13 @@ class TransactionDetailScreen extends StatelessWidget {
                     color: CupertinoColors.systemIndigo),
               ),
               const SizedBox(width: 8),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('You',
-                      style: TextStyle(
-                          color: CupertinoColors.white, fontSize: 14)),
-                  const Text('นายประยุทธ์ น.',
-                      style: TextStyle(
-                          color: CupertinoColors.systemGrey, fontSize: 12)),
-                  Text(
-                      DateFormat('EEE dd MMM yy HH:mm')
-                          .format(transaction.transactionDate),
-                      style: const TextStyle(
-                          color: CupertinoColors.systemGrey2, fontSize: 12)),
-                ],
-              ),
-              const Spacer(),
-              Container(
-                width: 50,
-                height: 50,
-                color: CupertinoColors.systemGrey3,
-                child: const Center(
-                  child: Text('Slip',
-                      style: TextStyle(
-                          color: CupertinoColors.black, fontSize: 14)),
-                ),
-              )
+              const Text('You',
+                  style: TextStyle(color: CupertinoColors.white, fontSize: 14)),
             ],
           ),
         ],
       ),
     );
   }
+*/
 }

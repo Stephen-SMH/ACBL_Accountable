@@ -5,11 +5,13 @@ import 'package:provider/provider.dart';
 class AddTransaction extends StatefulWidget {
   final String? initialAmount;
   final String? initialNotes;
+  final String? initialCategory;
 
   const AddTransaction({
     super.key,
     this.initialAmount,
     this.initialNotes,
+    this.initialCategory,
   });
 
   @override
@@ -40,6 +42,10 @@ class _AddTransactionState extends State<AddTransaction> {
     }
     if (widget.initialNotes != null) {
       notesController.text = widget.initialNotes!;
+    }
+    if (widget.initialCategory != null) {
+      selectedCategory = widget.initialCategory!;
+    } else if (widget.initialNotes != null) {
       _autoGenerateCategory(widget.initialNotes!);
     }
     selectedDate = DateTime.now();
