@@ -197,6 +197,22 @@ class ObjectDetectionService {
     }
   }
 
+  String getCategoryForDetectedObject(String objectName) {
+    switch (objectName) {
+      case 'HamCheeseSandwich':
+      case 'MirindaOrange':
+      case 'BirdyEspressoGreenCan':
+      case 'BirdyRobustaRedCan':
+      case 'M150':
+      case 'NescafeEspressoRoastGreenCan':
+      case 'YenYen':
+      case 'Pepsi_410ml':
+        return 'food';
+      default:
+        return 'other';
+    }
+  }
+
   void dispose() {
     _interpreter?.close();
   }

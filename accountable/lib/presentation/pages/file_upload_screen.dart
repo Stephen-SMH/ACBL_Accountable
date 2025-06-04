@@ -168,8 +168,8 @@ class _FileUploadScreenState extends State<FileUploadScreen> {
       if (detectionResult != null) {
         print('Object Detected: ${detectionResult.name}, Accuracy: ${detectionResult.accuracy}');
         
-        // Get category from Gemini based on detected object name
-        final String? category = await GeminiService.instance.generateCategoryFromText(detectionResult.name);
+        // Get category based on detected object name using hardcoded logic
+        final String? category = ObjectDetectionService().getCategoryForDetectedObject(detectionResult.name);
 
         if (!mounted) return;
 
