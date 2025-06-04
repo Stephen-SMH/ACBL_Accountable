@@ -1,14 +1,7 @@
 import 'package:sqflite/sqflite.dart';
 import 'package:flutter/material.dart'; // PROVIDER REQUIRES MATERIAL???? WHY????
 
-import 'package:cloud_firestore/cloud_firestore.dart'; // for the firebase stuff
-import 'package:firebase_vertexai/firebase_vertexai.dart'; // gemini api
 import 'package:accountable/services/gemini_service.dart'; // for GeminiService
-
-FirebaseFirestore firebaseDB = FirebaseFirestore.instance;
-
-final llm = FirebaseVertexAI.instance
-    .generativeModel(model: 'gemini-2.5-flash-preview-04-17');
 
 class LocalDB {
   // if you touch this make sure to label the commit with BREAKING CHANGE
@@ -272,103 +265,12 @@ class Trans {
     
     try {
       final image = await this.image.readAsBytes();
-      final imagePart = InlineDataPart('image/jpeg', image);
-      final prompt = TextPart(
-          """Given the image, select the single most fitting category from the following list. Output *only* the chosen category name.
-
-List: Food, Personal, Utility, Transportation, Health, Leisure, Other""");
-
-      var response = await llm.generateContent([
-        Content.multi([prompt, imagePart])
-      ]);
-
-      // if (response.isError) {
-      //   debugPrint("[generateCategory] Error: ${response.error}");
-      //   return;
-      // }
-      final category = response.text?.trim().toLowerCase();
+      final result = await GeminiService.instance.extractData(image, isSlip: true);
+      final category = result['category'];
       transType = stringToTransType(category!);
     } catch (e) {
       debugPrint("[generateCategory] Error processing image: $e");
       // Keep the current transaction type if there's an error
-    }
-  }
-
-  Future<void> voteCategory() async {
-    final categoryToVote = transTypeToString(transType).toLowerCase();
-    debugPrint(
-        "[voteCategory] Starting for '$transName' with category '$categoryToVote'");
-
-    if (categoryToVote == 'other') {
-      debugPrint(
-          "[voteCategory] Skipping vote for 'other' category for '$transName'");
-      return;
-    }
-
-    try {
-      final querySnapshot = await firebaseDB.collection("vendors").get();
-      debugPrint(
-          "[voteCategory] Fetched ${querySnapshot.docs.length} vendors.");
-      DocumentReference? vendorDocRef;
-      Map<String, dynamic>? vendorData;
-      String? foundVendorName;
-
-      // Find the matching vendor document
-      for (var doc in querySnapshot.docs) {
-        final docData = doc.data();
-        final vendorName = docData["name"] as String?;
-        if (vendorName != null &&
-            transName.toLowerCase().contains(vendorName.toLowerCase())) {
-          vendorDocRef = doc.reference;
-          vendorData = docData;
-          foundVendorName = vendorName;
-          debugPrint(
-              "[voteCategory] Found matching vendor '$vendorName' (Doc ID: ${doc.id}) for '$transName'");
-          break;
-        }
-      }
-
-      if (vendorDocRef != null && vendorData != null) {
-        final votesDynamic = vendorData["votes"] as Map<String, dynamic>? ?? {};
-        final Map<String, int> categories = votesDynamic
-            .map((key, value) => MapEntry(key, (value as num?)?.toInt() ?? 0));
-        debugPrint("[voteCategory] Existing votes: $categories");
-
-        // Increment the vote count for the transaction's category
-        categories.update(categoryToVote, (value) => value + 1,
-            ifAbsent: () => 1);
-        debugPrint("[voteCategory] Updated votes: $categories");
-
-        // Update Firestore
-        await vendorDocRef.update({'votes': categories});
-        debugPrint(
-            "[voteCategory] Successfully voted for category '$categoryToVote' for vendor '$foundVendorName'");
-      } else {
-        debugPrint(
-            "[voteCategory] Vendor not found for '$transName'. Creating new vendor and voting for category '$categoryToVote'.");
-        final initialVotes = {
-          'food': 0,
-          'personal': 0,
-          'utility': 0,
-          'transportation': 0,
-          'health': 0,
-          'leisure': 0,
-          'other': 0,
-        };
-        initialVotes[categoryToVote] = 1;
-        debugPrint(
-            "[voteCategory] Initial votes for new vendor: $initialVotes");
-
-        await firebaseDB.collection("vendors").add({
-          'name': transName,
-          'votes': initialVotes,
-        });
-        debugPrint(
-            "[voteCategory] Successfully created new vendor '$transName' with initial vote for '$categoryToVote'");
-      }
-    } catch (e, s) {
-      debugPrint(
-          "[voteCategory] Error voting for category '$categoryToVote' for '$transName': $e\nStack trace: $s");
     }
   }
 
