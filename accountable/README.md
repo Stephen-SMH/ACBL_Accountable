@@ -1,3 +1,7 @@
+# Accountable (Ena)
+
+Use LLMs and Object Recognition to automatically put your transaction into a lightweight budgeting system!
+
 ### Key Features
 *   **Transaction Management**: Core functionality for adding, viewing, and summarizing financial transactions.
 *   **Document Processing**: Supports PDF and image file uploads for data extraction.
