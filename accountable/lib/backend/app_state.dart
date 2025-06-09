@@ -140,6 +140,10 @@ class TransList extends ChangeNotifier {
     notifyListeners();
   }
 
+  double get totalAmount {
+    return transactions.fold(0.0, (sum, trans) => sum + trans.amount);
+  }
+
   Map<TransactionType, double> generateInsights() {
     Map<TransactionType, double> insights = {
       TransactionType.food: 0,
